@@ -1,0 +1,27 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+
+# Environment
+.env
+
+# Database
+data/
+*.db
+
+# Next.js
+frontend/.next/
+frontend/node_modules/
+frontend/.env.local
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
