@@ -12,7 +12,7 @@ ARGS = ["--disable-blink-features=AutomationControlled", "--no-sandbox"]
 
 class BananaRepublicScraper(BaseScraper):
     retailer_name = "Banana Republic"
-    SKIRTS_URL = "https://bananarepublic.gap.com/browse/category.do?cid=1122032"
+    SKIRTS_URL = "https://bananarepublic.gap.com/browse/category/womens-skirts"
 
     async def _get_browser_context(self, browser) -> BrowserContext:
         ctx = await browser.new_context(
@@ -39,7 +39,7 @@ class BananaRepublicScraper(BaseScraper):
     async def _scrape_products(self, page: Page) -> list[RawProduct]:
         products = []
         try:
-            await page.goto(self.SKIRTS_URL, wait_until="networkidle", timeout=35000)
+            await page.goto(self.SKIRTS_URL, wait_until="domcontentloaded", timeout=60000)
             await page.wait_for_timeout(5000)
 
             cards = await page.query_selector_all("[class*='product-card'], [class*='ProductCard'], li[class*='product'], .product-list-item")

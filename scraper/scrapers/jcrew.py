@@ -39,7 +39,7 @@ class JCrewScraper(BaseScraper):
     async def _scrape_products(self, page: Page) -> list[RawProduct]:
         products = []
         try:
-            await page.goto(self.SKIRTS_URL, wait_until="networkidle", timeout=35000)
+            await page.goto(self.SKIRTS_URL, wait_until="domcontentloaded", timeout=60000)
             await page.wait_for_timeout(5000)
 
             cards = await page.query_selector_all("[class*='product-tile'], [class*='ProductTile'], li[class*='product'], [data-testid*='product']")

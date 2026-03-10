@@ -39,7 +39,7 @@ class LoftScraper(BaseScraper):
     async def _scrape_products(self, page: Page) -> list[RawProduct]:
         products = []
         try:
-            await page.goto(self.SKIRTS_URL, wait_until="networkidle", timeout=35000)
+            await page.goto(self.SKIRTS_URL, wait_until="domcontentloaded", timeout=60000)
             await page.wait_for_timeout(4000)
 
             cards = await page.query_selector_all("[data-testid='product-tile'], .product-tile, [class*='ProductCard'], [class*='product-card']")
