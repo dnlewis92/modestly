@@ -2,21 +2,11 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# System dependencies for Chromium/Playwright
-RUN apt-get update && apt-get install -y \
-    wget curl gnupg ca-certificates \
-    libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
-    libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 \
-    libxfixes3 libxrandr2 libgbm1 libasound2 \
-    libpango-1.0-0 libcairo2 libatspi2.0-0 \
-    fonts-liberation libappindicator3-1 \
-    --no-install-recommends && rm -rf /var/lib/apt/lists/*
-
 # Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright's bundled Chromium
+# Install Playwright's Chromium + all its system dependencies
 RUN playwright install chromium --with-deps
 
 # App code
@@ -25,6 +15,5 @@ COPY backend/ ./backend/
 
 RUN mkdir -p /app/data
 
-EXPOSE 8000
-
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Railway injects $PORT — use shell form so the variable is expanded
+CMD uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}
