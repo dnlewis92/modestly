@@ -1,13 +1,12 @@
 "use client";
 
 const ALL_RETAILERS = [
-  "ASOS",
-  "H&M",
-  "Zara",
-  "Nordstrom Rack",
-  "Bloomingdale's",
-  "Anthropologie",
   "Abercrombie",
+  "LOFT",
+  "Madewell",
+  "Banana Republic",
+  "J.Crew",
+  "ModCloth",
 ];
 
 export interface Filters {

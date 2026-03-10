@@ -1,99 +1,67 @@
 """
-Claude vision classifier for modest clothing detection.
-Analyzes product images against modesty criteria:
-  - Skirt/dress only (no pants)
-  - Knee-length or longer
-  - Sleeves past shoulders (for dresses/full outfits)
-  - No midriff/belly visible
+Rule-based modesty classifier — no API calls, no cost.
+
+Filters based on product name keywords since we're already scraping
+skirts-specific category pages. Items with mini/micro/short/skort in
+the name are rejected; everything else in a skirts category is accepted.
 """
 
-import json
-import os
-import anthropic
+REJECT_KEYWORDS = [
+    "mini", "micro", "skort", "romper", "playsuit",
+    "above the knee", "above-the-knee", "short skirt",
+    "cutout", "cut-out", "high slit",
+]
 
-client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+MIDI_KEYWORDS = ["midi", "mid-length", "mid length", "below the knee", "below-the-knee"]
+MAXI_KEYWORDS = ["maxi", "long", "floor-length", "floor length", "ankle", "full-length"]
+KNEE_KEYWORDS = ["knee", "knee-length", "knee length"]
 
-SYSTEM_PROMPT = """You are a fashion classifier for a modest clothing aggregator.
-You analyze product images and determine if items meet specific modesty criteria.
-Always respond with valid JSON only — no markdown, no explanation outside the JSON."""
+def classify_product_by_name(name: str) -> dict:
+    """
+    Classify a product by name alone.
+    Returns is_modest, length, confidence, reason.
+    """
+    name_lower = name.lower()
 
-CLASSIFICATION_PROMPT = """Analyze this clothing product image for modesty criteria.
+    # Hard reject
+    for kw in REJECT_KEYWORDS:
+        if kw in name_lower:
+            return {
+                "is_modest": False,
+                "confidence": 0.9,
+                "reason": f'Rejected: contains "{kw}"',
+                "length": "mini",
+                "item_type": "skirt",
+                "has_sleeve_issue": False,
+            }
 
-Criteria to check:
-1. ITEM TYPE: Must be a skirt or dress (not pants, shorts, jeans, or trousers)
-2. LENGTH: Hemline must reach at or below the knee (knee/midi/maxi length)
-3. COVERAGE: No belly or midriff visible in the photo
-4. SLEEVES: If the item is a dress or a full outfit is shown, sleeves must extend past the shoulder (no sleeveless, strapless, or off-shoulder styles)
+    # Determine length from name
+    length = "unknown"
+    for kw in MIDI_KEYWORDS:
+        if kw in name_lower:
+            length = "midi"
+            break
+    if length == "unknown":
+        for kw in MAXI_KEYWORDS:
+            if kw in name_lower:
+                length = "maxi"
+                break
+    if length == "unknown":
+        for kw in KNEE_KEYWORDS:
+            if kw in name_lower:
+                length = "knee"
+                break
 
-Product name hint: {product_name}
-
-Respond with this exact JSON format:
-{{
-  "is_modest": true or false,
-  "confidence": 0.0 to 1.0,
-  "reason": "one sentence explanation of pass or fail",
-  "length": "mini" or "knee" or "midi" or "maxi" or "unknown",
-  "item_type": "skirt" or "dress" or "pants" or "other" or "unknown",
-  "has_sleeve_issue": true or false
-}}"""
+    return {
+        "is_modest": True,
+        "confidence": 0.85 if length != "unknown" else 0.6,
+        "reason": f"Skirts category, length={length}, no red-flag keywords",
+        "length": length,
+        "item_type": "skirt",
+        "has_sleeve_issue": False,
+    }
 
 
+# Keep async signature so run.py doesn't need changes
 async def classify_product(image_url: str, product_name: str = "") -> dict:
-    """
-    Classify a product image for modesty.
-    Returns a dict with is_modest, confidence, reason, length, item_type.
-    """
-    try:
-        response = client.messages.create(
-            model="claude-opus-4-6",
-            max_tokens=512,
-            system=SYSTEM_PROMPT,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image",
-                            "source": {
-                                "type": "url",
-                                "url": image_url,
-                            },
-                        },
-                        {
-                            "type": "text",
-                            "text": CLASSIFICATION_PROMPT.format(
-                                product_name=product_name or "Unknown"
-                            ),
-                        },
-                    ],
-                }
-            ],
-        )
-
-        text = response.content[0].text.strip()
-        # Strip markdown code fences if present
-        if text.startswith("```"):
-            text = text.split("```")[1]
-            if text.startswith("json"):
-                text = text[4:]
-        result = json.loads(text)
-        return result
-
-    except json.JSONDecodeError:
-        return {
-            "is_modest": False,
-            "confidence": 0.0,
-            "reason": "Classification failed: could not parse response",
-            "length": "unknown",
-            "item_type": "unknown",
-            "has_sleeve_issue": False,
-        }
-    except Exception as e:
-        return {
-            "is_modest": False,
-            "confidence": 0.0,
-            "reason": f"Classification error: {str(e)[:100]}",
-            "length": "unknown",
-            "item_type": "unknown",
-            "has_sleeve_issue": False,
-        }
+    return classify_product_by_name(product_name)
