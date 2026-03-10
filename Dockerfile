@@ -15,5 +15,7 @@ COPY backend/ ./backend/
 
 RUN mkdir -p /app/data
 
-# Railway injects $PORT — use shell form so the variable is expanded
-CMD uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}
+COPY start.sh .
+RUN chmod +x start.sh
+
+CMD ["/bin/sh", "start.sh"]
